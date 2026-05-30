@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TapStorm Games</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #111; color: white; font-family: Arial; text-align: center; }
+#menu { padding: 20px; }
+h1 { font-size: 42px; color: #ff007f; margin: 20px 0; }
+button { display: block; width: 90%; max-width: 400px; margin: 15px auto; padding: 25px; font-size: 22px; font-weight: bold; border: none; border-radius: 16px; cursor: pointer; }
+.pink { background: #ff007f; color: white; }
+.purple { background: #8b5cf6; color: white; }
+.cyan { background: #06b6d4; color: black; }
+#gameScreen { display: none; padding: 10px; }
+#score { font-size: 24px; color: #fbbf24; margin: 10px; }
+canvas { border: 2px solid #ff007f; border-radius: 16px; max-width: 100%; }
+.controls { margin: 15px 0; }
+.ctrl-btn { display: inline-block; width: 70px; height: 70px; margin: 5px; font-size: 28px; border-radius: 12px; background: #333; color: white; border: 2px solid #555; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+<h1>TAPSTORM</h1>
+<p style="color:#aaa">3 Games Free Offline</p>
+<p style="color:#fbbf24;font-size:12px">pub-6880789718761474</p>
+<button class="pink" onclick="startGame('maze')">🎮 NEON MAZE</button>
+<button class="purple" onclick="startGame('match3')">💎 GEM CRUSH</button>
+<button class="cyan" onclick="startGame('runner')">🏃 NEON RUNNER</button>
+</div>
+
+<div id="gameScreen">
+<p id="score">Score: 0</p>
+<canvas id="game"></canvas>
+<div class="controls" id="mazeControls">
+<button class="ctrl-btn" onclick="move(0,-1)">▲</button><br>
+<button class="ctrl-btn" onclick="move(-1,0)">◀</button>
+<button class="ctrl-btn" onclick="move(1,0)">▶</button><br>
+<button class="ctrl-btn" onclick="move(0,1)">▼</button>
+</div>
+<div class="controls" id="runnerControls">
+<button class="ctrl-btn" onclick="jump()" style="width:200px">JUMP</button>
+</div>
+<button onclick="backToMenu()" style="background:#444;color:white;padding:15px;font-size:16px;margin-top:10px">← Back to Menu</button>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let gameType, score = 0, player, coins, enemies, walls, grid, gems, selectedGem, moves, obstacles, frame, speed;
+const TILE = 30, COLS = 15, ROWS = 15;
+
+function startGame(type) {
+gameType = type; score = 0; frame = 0;
+document.getElementById('menu').style.display = 'none';
+document.getElementById('gameScreen').style.display = 'block';
+document.getElementById('mazeControls').style.display = type === 'maze' ? 'block' : 'none';
+document.getElementById('runnerControls').style.display = type === 'runner' ? 'block' : 'none';
+
+if(type === 'maze') initMaze();
+else if(type === 'match3') initMatch3();
+else if(type === 'runner') initRunner();
+
+requestAnimationFrame(gameLoop);
+}
+
+function backToMenu() {
+document.getElementById('menu').style.display = 'block';
+document.getElementById('gameScreen').style.display = 'none';
+}
+
+function updateScore() { document.getElementById('score').textContent = 'Score: ' + score; }
+
+// NEON MAZE
+function initMaze() {
+canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
+player = {x:1,y:1}; coins = []; enemies = []; walls = new Set();
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(Math.random()<0.3)walls.add(c+','+r);
+walls.delete('1,1'); 
+for(let i=0;i<8;i++)coins.push({x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)});
+for(let i=0;i<3;i++)enemies.push({x:COLS-2,y:ROWS-2,dx:-1,dy:0});
+}
+
+function move(dx,dy) {
+let nx = player.x + dx, ny = player.y + dy;
+if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&!walls.has(nx+','+ny)) {
+player.x = nx; player.y = ny;
+coins = coins.filter(c => {
+if(c.x===player.x&&c.y===player.y){score+=10;updateScore();return false;}
+return true;
+});
+}
+}
+
+function drawMaze() {
+ctx.fillStyle='#030712';ctx.fillRect(0,0,canvas.width,canvas.height);
+walls.forEach(w=>{let[c,r]=w.split(',');ctx.fillStyle='#1f2937';ctx.fillRect(c*TILE,r*TILE,TILE,TILE);});
+ctx.fillStyle='#fbbf24';ctx.shadowBlur=10;ctx.shadowColor='#fbbf24';
+coins.forEach(c=>{ctx.beginPath();ctx.arc(c.x*TILE+TILE/2,c.y*TILE+TILE/2,6,0,Math.PI*2);ctx.fill();});
+ctx.shadowBlur=0;ctx.fillStyle='#fbbf24';
+ctx.beginPath();ctx.roundRect(player.x*TILE+4,player.y*TILE+4,TILE-8,TILE-8,6);ctx.fill();
+ctx.fillStyle='#ff007f';
+enemies.forEach(e=>{ctx.beginPath();ctx.roundRect(e.x*TILE+4,e.y*TILE+4,TILE-8,TILE-8,6);ctx.fill();});
+}
+
+// GEM CRUSH
+function initMatch3() {
+canvas.width = 400; canvas.height = 500; gems = []; moves = 30;
+for(let r=0;r<8;r++){let row=[];for(let c=0;c<6;c++)row.push(Math.floor(Math.random()*5));gems.push(row);}
+}
+
+function drawMatch3() {
+ctx.fillStyle='#1a1033';ctx.fillRect(0,0,canvas.width,canvas.height);
+for(let r=0;r<8;r++)for(let c=0;c<6;c++){
+let colors=['#ff007f','#8b5cf6','#fbbf24','#10b981','#3b82f6'];
+ctx.fillStyle=colors[gems[r][c]];
+ctx.beginPath();ctx.arc(c*67+33,r*60+30,25,0,Math.PI*2);ctx.fill();
+}
+}
+
+// NEON RUNNER
+function initRunner() {
+canvas.width = 400; canvas.height = 300; player={x:50,y:220,vy:0,ground:true};
+obstacles=[]; 
+}
+
+function jump() {
+if(player.ground){player.vy=-12;player.ground=false;}
+}
+
+function drawRunner() {
+ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,canvas.width,canvas.height);
+ctx.fillStyle='#ff007f';ctx.fillRect(0,250,canvas.width,4);
+ctx.fillStyle='#00ffff';ctx.shadowBlur=15;ctx.shadowColor='#00ffff';
+player.y+=player.vy;player.vy+=0.6;
+if(player.y>=220){player.y=220;player.vy=0;player.ground=true;}
+ctx.fillRect(player.x,player.y,30,30);ctx.shadowBlur=0;
+frame++;if(frame%120===0)obstacles.push({x:400,w:20,h:40});
+obstacles=obstacles.filter(o=>{
+o.x-=4;ctx.fillStyle='#ff007f';ctx.fillRect(o.x,210,o.w,o.h);
+if(o.x<player.x+30&&o.x+o.w>player.x&&210<player.y+30)return false;
+return o.x>-50;
+});
+if(frame%10===0){score++;updateScore();}
+}
+
+function gameLoop() {
+if(gameType==='maze')drawMaze();
+else if(gameType==='match3')drawMatch3();
+else if(gameType==='runner')drawRunner();
+requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
