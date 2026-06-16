@@ -2,156 +2,547 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TapStorm Games</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Tapstorm Arcade</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #111; color: white; font-family: Arial; text-align: center; }
-#menu { padding: 20px; }
-h1 { font-size: 42px; color: #ff007f; margin: 20px 0; }
-button { display: block; width: 90%; max-width: 400px; margin: 15px auto; padding: 25px; font-size: 22px; font-weight: bold; border: none; border-radius: 16px; cursor: pointer; }
-.pink { background: #ff007f; color: white; }
-.purple { background: #8b5cf6; color: white; }
-.cyan { background: #06b6d4; color: black; }
-#gameScreen { display: none; padding: 10px; }
-#score { font-size: 24px; color: #fbbf24; margin: 10px; }
-canvas { border: 2px solid #ff007f; border-radius: 16px; max-width: 100%; }
-.controls { margin: 15px 0; }
-.ctrl-btn { display: inline-block; width: 70px; height: 70px; margin: 5px; font-size: 28px; border-radius: 12px; background: #333; color: white; border: 2px solid #555; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a1a; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; }
+  #app { width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+  #main-menu { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%); padding: 20px; }
+  #main-menu h1 { font-size: 56px; color: #00d2ff; text-shadow: 0 0 30px #00d2ff88; margin-bottom: 10px; letter-spacing: 4px; }
+  #main-menu .subtitle { color: #888; font-size: 18px; margin-bottom: 50px; letter-spacing: 3px; }
+
+  .game-card { width: 70%; max-width: 500px; padding: 28px; margin: 12px 0; border-radius: 24px; border: 2px solid; cursor: pointer; transition: transform 0.2s; display: flex; align-items: center; gap: 20px; }
+  .game-card:active { transform: scale(0.97); }
+  .game-card .icon { font-size: 48px; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; border-radius: 20px; background: rgba(255,255,255,0.1); }
+  .game-card .info { flex: 1; }
+  .game-card .info h3 { font-size: 28px; margin-bottom: 6px; }
+  .game-card .info p { font-size: 16px; color: #aaa; }
+  .game-card .play-btn { padding: 14px 32px; border-radius: 28px; border: none; font-weight: bold; color: #fff; font-size: 18px; }
+
+  #card-gem { border-color: #e74c3c; background: linear-gradient(135deg, #e74c3c22, #c0392b22); }
+  #card-gem .play-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+  #card-runner { border-color: #00d2ff; background: linear-gradient(135deg, #00d2ff22, #3a7bd522); }
+  #card-runner .play-btn { background: linear-gradient(135deg, #00d2ff, #3a7bd5); }
+  #card-maze { border-color: #f1c40f; background: linear-gradient(135deg, #f1c40f22, #f39c1222); }
+  #card-maze .play-btn { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+
+  .game-screen { display: none; flex: 1; flex-direction: column; position: relative; }
+  .game-screen.active { display: flex; }
+
+  .game-header { padding: 16px 30px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); flex-shrink: 0; }
+  .game-header .back { padding: 12px 24px; border-radius: 24px; border: 1px solid #444; background: rgba(255,255,255,0.1); color: #fff; font-size: 18px; cursor: pointer; }
+  .game-header .score { font-size: 22px; font-weight: bold; }
+  .game-header .score span { color: #ffd700; font-size: 28px; }
+
+  #gem-board { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #gem-grid { display: grid; gap: 6px; background: rgba(255,255,255,0.06); padding: 12px; border-radius: 20px; }
+  .gem-cell { width: var(--gem-size); height: var(--gem-size); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--gem-size) * 0.55); cursor: pointer; transition: transform 0.15s; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3); user-select: none; }
+  .gem-cell:active { transform: scale(0.92); }
+  .gem-cell.selected { box-shadow: 0 0 0 4px #fff, inset 0 -4px 0 rgba(0,0,0,0.2); transform: scale(1.05); z-index: 10; }
+  .gem-cell.matched { animation: gemPop 0.4s ease forwards; }
+  .gem-cell.falling { animation: gemFall 0.3s ease forwards; }
+  @keyframes gemPop { 0%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:0.7}100%{transform:scale(0);opacity:0} }
+  @keyframes gemFall { 0%{transform:translateY(-50px);opacity:0}100%{transform:translateY(0);opacity:1} }
+
+  #runner-canvas { flex: 1; background: #000; position: relative; overflow: hidden; }
+  #runner-canvas canvas { width: 100%; height: 100%; display: block; }
+  #runner-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); }
+  #runner-overlay h2 { font-size: 48px; color: #00d2ff; text-shadow: 0 0 30px #00d2ff; margin-bottom: 30px; }
+  #runner-overlay .runner-btn { padding: 20px 60px; border: none; border-radius: 35px; font-size: 24px; font-weight: bold; color: #fff; background: linear-gradient(135deg, #00d2ff, #3a7bd5); cursor: pointer; margin: 10px; box-shadow: 0 6px 30px rgba(0,210,255,0.4); }
+  #runner-controls { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 40px; padding: 0 40px; }
+  .runner-control { width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #fff; cursor: pointer; user-select: none; }
+  .runner-control:active { background: rgba(0,210,255,0.3); }
+
+  #maze-canvas { flex: 1; background: #050510; position: relative; overflow: hidden; }
+  #maze-canvas canvas { width: 100%; height: 100%; display: block; }
+  #maze-controls { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 90px); grid-template-rows: repeat(3, 90px); gap: 12px; }
+  .maze-btn { border-radius: 20px; background: rgba(255,255,255,0.15); border: 3px solid rgba(241,196,15,0.4); color: #f1c40f; font-size: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+  .maze-btn:active { background: rgba(241,196,15,0.3); }
+  .maze-btn:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .maze-btn:nth-child(4) { grid-column: 1; grid-row: 2; }
+  .maze-btn:nth-child(5) { grid-column: 2; grid-row: 2; background: rgba(241,196,15,0.2); }
+  .maze-btn:nth-child(6) { grid-column: 3; grid-row: 2; }
+  .maze-btn:nth-child(8) { grid-column: 2; grid-row: 3; }
+  #maze-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 10; }
+  #maze-overlay h2 { font-size: 48px; color: #f1c40f; text-shadow: 0 0 30px #f1c40f; margin-bottom: 30px; }
+  #maze-overlay .maze-btn-start { padding: 20px 60px; border: none; border-radius: 35px; font-size: 24px; font-weight: bold; color: #000; background: linear-gradient(135deg, #f1c40f, #f39c12); cursor: pointer; box-shadow: 0 6px 30px rgba(241,196,15,0.4); }
+
+  .level-bar { position: fixed; top: 65px; left: 30px; right: 30px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; z-index: 50; }
+  .level-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00d2ff, #3a7bd5); transition: width 0.5s; }
+
+  .combo-text { position: fixed; top: 45%; left: 50%; transform: translate(-50%, -50%); font-size: 56px; font-weight: bold; color: #ffd700; text-shadow: 0 4px 30px rgba(0,0,0,0.5); pointer-events: none; opacity: 0; transition: all 0.5s; z-index: 200; }
+  .combo-text.show { opacity: 1; transform: translate(-50%, -55%) scale(1.2); }
+
+  #rewarded-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+  #rewarded-overlay .ad-box { width: 85%; max-width: 500px; height: 350px; background: linear-gradient(135deg, #1a1a3e, #0a0a1a); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid #333; margin-bottom: 30px; position: relative; overflow: hidden; }
+  #rewarded-overlay .ad-box::before { content: ''; position: absolute; inset: 0; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%); animation: shimmer 2s infinite; }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  #rewarded-overlay .ad-box .ad-label { font-size: 14px; color: #666; margin-bottom: 20px; z-index: 1; }
+  #rewarded-overlay .ad-box .ad-unit { font-size: 12px; color: #444; font-family: monospace; z-index: 1; }
+  #rewarded-overlay .ad-box .ad-timer { font-size: 48px; color: #00d2ff; font-weight: bold; margin-bottom: 20px; z-index: 1; }
+  #rewarded-overlay .ad-box .ad-progress { width: 80%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; z-index: 1; }
+  #rewarded-overlay .ad-box .ad-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #00d2ff, #3a7bd5); transition: width 0.1s linear; }
+  #rewarded-overlay .reward-btn { padding: 16px 50px; border: none; border-radius: 30px; font-size: 20px; font-weight: bold; color: #fff; background: linear-gradient(135deg, #00d2ff, #3a7bd5); cursor: pointer; box-shadow: 0 4px 20px rgba(0,210,255,0.4); opacity: 0.5; pointer-events: none; transition: opacity 0.3s; }
+  #rewarded-overlay .reward-btn.active { opacity: 1; pointer-events: auto; }
+  #rewarded-overlay .reward-btn .reward-text { font-size: 14px; color: #aaa; display: block; margin-top: 4px; }
+  #rewarded-overlay .skip-btn { position: absolute; top: 20px; right: 20px; padding: 8px 20px; border: 1px solid #444; border-radius: 20px; background: rgba(255,255,255,0.1); color: #888; font-size: 14px; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
+  #rewarded-overlay .skip-btn.show { opacity: 1; }
 </style>
 </head>
 <body>
+<div id="app">
+  <div id="main-menu">
+    <h1>⚡ TAPSTORM</h1>
+    <p class="subtitle">ARCADE COLLECTION</p>
 
-<div id="menu">
-<h1>TAPSTORM</h1>
-<p style="color:#aaa">3 Games Free Offline</p>
-<p style="color:#fbbf24;font-size:12px">pub-6880789718761474</p>
-<button class="pink" onclick="startGame('maze')">🎮 NEON MAZE</button>
-<button class="purple" onclick="startGame('match3')">💎 GEM CRUSH</button>
-<button class="cyan" onclick="startGame('runner')">🏃 NEON RUNNER</button>
-</div>
+    <div class="game-card" id="card-gem" onclick="showGame('gem')">
+      <div class="icon">💎</div>
+      <div class="info">
+        <h3>Gem Crush</h3>
+        <p>Match 3+ gems to score big</p>
+      </div>
+      <div class="play-btn">PLAY</div>
+    </div>
 
-<div id="gameScreen">
-<p id="score">Score: 0</p>
-<canvas id="game"></canvas>
-<div class="controls" id="mazeControls">
-<button class="ctrl-btn" onclick="move(0,-1)">▲</button><br>
-<button class="ctrl-btn" onclick="move(-1,0)">◀</button>
-<button class="ctrl-btn" onclick="move(1,0)">▶</button><br>
-<button class="ctrl-btn" onclick="move(0,1)">▼</button>
-</div>
-<div class="controls" id="runnerControls">
-<button class="ctrl-btn" onclick="jump()" style="width:200px">JUMP</button>
-</div>
-<button onclick="backToMenu()" style="background:#444;color:white;padding:15px;font-size:16px;margin-top:10px">← Back to Menu</button>
+    <div class="game-card" id="card-runner" onclick="showGame('runner')">
+      <div class="icon">🏃</div>
+      <div class="info">
+        <h3>Neon Runner</h3>
+        <p>Dodge obstacles in neon city</p>
+      </div>
+      <div class="play-btn">PLAY</div>
+    </div>
+
+    <div class="game-card" id="card-maze" onclick="showGame('maze')">
+      <div class="icon">🌀</div>
+      <div class="info">
+        <h3>Neon Maze</h3>
+        <p>Escape the glowing labyrinth</p>
+      </div>
+      <div class="play-btn">PLAY</div>
+    </div>
+  </div>
+
+  <div class="game-screen" id="gem-game">
+    <div class="game-header">
+      <button class="back" onclick="showMenu()">← Menu</button>
+      <div class="score">SCORE: <span id="gem-score">0</span></div>
+    </div>
+    <div class="level-bar"><div class="level-fill" id="gem-level"></div></div>
+    <div id="gem-board"><div id="gem-grid"></div></div>
+    <div class="combo-text" id="gem-combo"></div>
+  </div>
+
+  <div class="game-screen" id="runner-game">
+    <div class="game-header">
+      <button class="back" onclick="showMenu(); stopRunner()">← Menu</button>
+      <div class="score">DIST: <span id="runner-score">0</span>m</div>
+    </div>
+    <div id="runner-canvas">
+      <canvas id="runner-cvs"></canvas>
+      <div id="runner-overlay">
+        <h2>🏃 NEON RUNNER</h2>
+        <button class="runner-btn" onclick="startRunner()">▶ START</button>
+        <p style="color:#888;margin-top:20px;font-size:18px;">Tap LEFT/RIGHT to dodge</p>
+      </div>
+      <div id="runner-controls" style="display:none;">
+        <div class="runner-control" ontouchstart="runnerMove(-1)" onmousedown="runnerMove(-1)">◀</div>
+        <div class="runner-control" ontouchstart="runnerJump()" onmousedown="runnerJump()">▲</div>
+        <div class="runner-control" ontouchstart="runnerMove(1)" onmousedown="runnerMove(1)">▶</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-screen" id="maze-game">
+    <div class="game-header">
+      <button class="back" onclick="showMenu(); stopMaze()">← Menu</button>
+      <div class="score">LEVEL: <span id="maze-score">1</span></div>
+    </div>
+    <div id="maze-canvas">
+      <canvas id="maze-cvs"></canvas>
+      <div id="maze-overlay">
+        <h2>🌀 NEON MAZE</h2>
+        <button class="maze-btn-start" onclick="startMaze()">▶ START</button>
+        <p style="color:#888;margin-top:20px;font-size:18px;">Find the exit!</p>
+      </div>
+      <div id="maze-controls" style="display:none;">
+        <div class="maze-btn" onclick="mazeMove(0,-1)">▲</div>
+        <div class="maze-btn" onclick="mazeMove(-1,0)">◀</div>
+        <div class="maze-btn">●</div>
+        <div class="maze-btn" onclick="mazeMove(1,0)">▶</div>
+        <div class="maze-btn" onclick="mazeMove(0,1)">▼</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rewarded-overlay">
+    <button class="skip-btn" id="ad-skip" onclick="skipRewardedAd()">Skip (5s)</button>
+    <div class="ad-box">
+      <div class="ad-label">📺 REWARDED AD</div>
+      <div class="ad-timer" id="ad-timer">5</div>
+      <div class="ad-progress"><div class="ad-progress-bar" id="ad-progress-bar"></div></div>
+      <div class="ad-unit" id="ad-unit-id">Loading...</div>
+    </div>
+    <button class="reward-btn" id="reward-btn" onclick="claimReward()">
+      Claim Reward
+      <span class="reward-text" id="reward-text">+5 moves</span>
+    </button>
+  </div>
 </div>
 
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-let gameType, score = 0, player, coins, enemies, walls, grid, gems, selectedGem, moves, obstacles, frame, speed;
-const TILE = 30, COLS = 15, ROWS = 15;
+const AD_UNITS = {
+  gem: { banner: '3789599594', interstitial: '3145086394', rewarded: '6032619551' },
+  runner: { banner: '7435685193', interstitial: '6266073759', rewarded: '6415762934' },
+  maze: { banner: '5841047866', interstitial: '9063097259', rewarded: '3023312831' }
+};
 
-function startGame(type) {
-gameType = type; score = 0; frame = 0;
-document.getElementById('menu').style.display = 'none';
-document.getElementById('gameScreen').style.display = 'block';
-document.getElementById('mazeControls').style.display = type === 'maze' ? 'block' : 'none';
-document.getElementById('runnerControls').style.display = type === 'runner' ? 'block' : 'none';
+let currentGame = null, rewardCallback = null, rewardDescription = '';
 
-if(type === 'maze') initMaze();
-else if(type === 'match3') initMatch3();
-else if(type === 'runner') initRunner();
+function showRewardedAd(game, callback, description) {
+  rewardCallback = callback; rewardDescription = description || 'Reward';
+  const overlay = document.getElementById('rewarded-overlay');
+  const timerEl = document.getElementById('ad-timer');
+  const progressBar = document.getElementById('ad-progress-bar');
+  const unitEl = document.getElementById('ad-unit-id');
+  const skipBtn = document.getElementById('ad-skip');
+  const rewardBtn = document.getElementById('reward-btn');
+  const rewardText = document.getElementById('reward-text');
 
-requestAnimationFrame(gameLoop);
+  overlay.style.display = 'flex';
+  unitEl.textContent = 'Unit: ' + AD_UNITS[game].rewarded;
+  rewardText.textContent = rewardDescription;
+  rewardBtn.classList.remove('active');
+  skipBtn.classList.remove('show');
+
+  let timeLeft = 5;
+  timerEl.textContent = timeLeft;
+  progressBar.style.width = '0%';
+
+  const interval = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+    progressBar.style.width = ((5 - timeLeft) / 5 * 100) + '%';
+    if (timeLeft <= 2) skipBtn.classList.add('show');
+    if (timeLeft <= 0) {
+      clearInterval(interval);
+      timerEl.textContent = '✓';
+      rewardBtn.classList.add('active');
+    }
+  }, 1000);
+  overlay.dataset.interval = interval;
 }
 
-function backToMenu() {
-document.getElementById('menu').style.display = 'block';
-document.getElementById('gameScreen').style.display = 'none';
+function skipRewardedAd() {
+  const overlay = document.getElementById('rewarded-overlay');
+  const interval = overlay.dataset.interval;
+  if (interval) clearInterval(interval);
+  overlay.style.display = 'none';
+  rewardCallback = null;
 }
 
-function updateScore() { document.getElementById('score').textContent = 'Score: ' + score; }
-
-// NEON MAZE
-function initMaze() {
-canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
-player = {x:1,y:1}; coins = []; enemies = []; walls = new Set();
-for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(Math.random()<0.3)walls.add(c+','+r);
-walls.delete('1,1'); 
-for(let i=0;i<8;i++)coins.push({x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)});
-for(let i=0;i<3;i++)enemies.push({x:COLS-2,y:ROWS-2,dx:-1,dy:0});
+function claimReward() {
+  const overlay = document.getElementById('rewarded-overlay');
+  const interval = overlay.dataset.interval;
+  if (interval) clearInterval(interval);
+  overlay.style.display = 'none';
+  if (rewardCallback) { rewardCallback(); rewardCallback = null; }
 }
 
-function move(dx,dy) {
-let nx = player.x + dx, ny = player.y + dy;
-if(nx>=0&&nx<COLS&&ny>=0&&ny<ROWS&&!walls.has(nx+','+ny)) {
-player.x = nx; player.y = ny;
-coins = coins.filter(c => {
-if(c.x===player.x&&c.y===player.y){score+=10;updateScore();return false;}
-return true;
-});
+function showGame(game) {
+  currentGame = game;
+  document.getElementById('main-menu').style.display = 'none';
+  document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(game + '-game').classList.add('active');
+  if (game === 'gem') initGemGame();
+  if (game === 'runner') initRunner();
+  if (game === 'maze') initMaze();
 }
-}
-
-function drawMaze() {
-ctx.fillStyle='#030712';ctx.fillRect(0,0,canvas.width,canvas.height);
-walls.forEach(w=>{let[c,r]=w.split(',');ctx.fillStyle='#1f2937';ctx.fillRect(c*TILE,r*TILE,TILE,TILE);});
-ctx.fillStyle='#fbbf24';ctx.shadowBlur=10;ctx.shadowColor='#fbbf24';
-coins.forEach(c=>{ctx.beginPath();ctx.arc(c.x*TILE+TILE/2,c.y*TILE+TILE/2,6,0,Math.PI*2);ctx.fill();});
-ctx.shadowBlur=0;ctx.fillStyle='#fbbf24';
-ctx.beginPath();ctx.roundRect(player.x*TILE+4,player.y*TILE+4,TILE-8,TILE-8,6);ctx.fill();
-ctx.fillStyle='#ff007f';
-enemies.forEach(e=>{ctx.beginPath();ctx.roundRect(e.x*TILE+4,e.y*TILE+4,TILE-8,TILE-8,6);ctx.fill();});
+function showMenu() {
+  document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('main-menu').style.display = 'flex';
+  currentGame = null;
 }
 
-// GEM CRUSH
-function initMatch3() {
-canvas.width = 400; canvas.height = 500; gems = []; moves = 30;
-for(let r=0;r<8;r++){let row=[];for(let c=0;c<6;c++)row.push(Math.floor(Math.random()*5));gems.push(row);}
+const GEM_ROWS = 8, GEM_COLS = 8;
+const GEM_TYPES = ['💎','🔴','🟢','🔵','🟡','🟣'];
+const GEM_COLORS = ['#e74c3c','#2ecc71','#3498db','#f1c40f','#9b59b6','#e67e22'];
+let gemBoard = [], gemScore = 0, gemMoves = 30, gemSelected = null, gemTarget = 1000, gemLevel = 1, gemAnimating = false;
+
+function initGemGame() {
+  gemScore = 0; gemMoves = 30; gemTarget = 1000; gemLevel = 1; gemSelected = null; gemAnimating = false;
+  updateGemUI(); buildGemBoard();
+}
+function calcGemSize() {
+  const w = window.innerWidth, h = window.innerHeight - 140;
+  return Math.min(Math.floor((w - 60) / GEM_COLS) - 6, Math.floor(h / GEM_ROWS) - 6, 80);
+}
+function buildGemBoard() {
+  const size = calcGemSize();
+  document.documentElement.style.setProperty('--gem-size', size + 'px');
+  const grid = document.getElementById('gem-grid');
+  grid.style.gridTemplateColumns = `repeat(${GEM_COLS}, ${size}px)`;
+  grid.innerHTML = '';
+  gemBoard = [];
+  for (let r = 0; r < GEM_ROWS; r++) {
+    gemBoard[r] = [];
+    for (let c = 0; c < GEM_COLS; c++) {
+      let t;
+      do { t = Math.floor(Math.random() * GEM_TYPES.length); }
+      while ((r >= 2 && gemBoard[r-1][c] === t && gemBoard[r-2][c] === t) || (c >= 2 && gemBoard[r][c-1] === t && gemBoard[r][c-2] === t));
+      gemBoard[r][c] = t;
+      makeGem(r, c, t, false);
+    }
+  }
+}
+function makeGem(r, c, t, anim) {
+  const el = document.createElement('div');
+  el.className = 'gem-cell' + (anim ? ' falling' : '');
+  el.textContent = GEM_TYPES[t];
+  el.style.background = `linear-gradient(135deg, ${GEM_COLORS[t]}88, ${GEM_COLORS[t]}dd)`;
+  el.dataset.r = r; el.dataset.c = c; el.dataset.type = t;
+  el.onclick = () => gemClick(r, c);
+  document.getElementById('gem-grid').appendChild(el);
+}
+function gemClick(r, c) {
+  if (gemAnimating || gemMoves <= 0) return;
+  const el = getGem(r, c);
+  if (!gemSelected) { gemSelected = {r, c}; el.classList.add('selected'); return; }
+  const {r: sr, c: sc} = gemSelected;
+  if (sr === r && sc === c) { el.classList.remove('selected'); gemSelected = null; return; }
+  if (Math.abs(sr - r) + Math.abs(sc - c) !== 1) { getGem(sr, sc).classList.remove('selected'); gemSelected = {r, c}; el.classList.add('selected'); return; }
+  getGem(sr, sc).classList.remove('selected');
+  swapGems(sr, sc, r, c);
+}
+function getGem(r, c) { return document.querySelector(`.gem-cell[data-r="${r}"][data-c="${c}"]`); }
+function swapGems(r1, c1, r2, c2) {
+  gemAnimating = true;
+  [gemBoard[r1][c1], gemBoard[r2][c2]] = [gemBoard[r2][c2], gemBoard[r1][c1]];
+  const e1 = getGem(r1, c1), e2 = getGem(r2, c2);
+  e1.dataset.type = gemBoard[r1][c1]; e1.textContent = GEM_TYPES[gemBoard[r1][c1]]; e1.style.background = `linear-gradient(135deg, ${GEM_COLORS[gemBoard[r1][c1]]}88, ${GEM_COLORS[gemBoard[r1][c1]]}dd)`;
+  e2.dataset.type = gemBoard[r2][c2]; e2.textContent = GEM_TYPES[gemBoard[r2][c2]]; e2.style.background = `linear-gradient(135deg, ${GEM_COLORS[gemBoard[r2][c2]]}88, ${GEM_COLORS[gemBoard[r2][c2]]}dd)`;
+  const m = findGemMatches();
+  if (!m.length) {
+    setTimeout(() => {
+      [gemBoard[r1][c1], gemBoard[r2][c2]] = [gemBoard[r2][c2], gemBoard[r1][c1]];
+      e1.dataset.type = gemBoard[r1][c1]; e1.textContent = GEM_TYPES[gemBoard[r1][c1]]; e1.style.background = `linear-gradient(135deg, ${GEM_COLORS[gemBoard[r1][c1]]}88, ${GEM_COLORS[gemBoard[r1][c1]]}dd)`;
+      e2.dataset.type = gemBoard[r2][c2]; e2.textContent = GEM_TYPES[gemBoard[r2][c2]]; e2.style.background = `linear-gradient(135deg, ${GEM_COLORS[gemBoard[r2][c2]]}88, ${GEM_COLORS[gemBoard[r2][c2]]}dd)`;
+      gemAnimating = false; gemSelected = null;
+    }, 300);
+  } else { gemMoves--; updateGemUI(); processGemMatches(); }
+}
+function findGemMatches() {
+  const matched = new Set();
+  for (let r = 0; r < GEM_ROWS; r++) for (let c = 0; c < GEM_COLS - 2; c++) {
+    const t = gemBoard[r][c];
+    if (t === gemBoard[r][c+1] && t === gemBoard[r][c+2]) { matched.add(`${r},${c}`); matched.add(`${r},${c+1}`); matched.add(`${r},${c+2}`); }
+  }
+  for (let c = 0; c < GEM_COLS; c++) for (let r = 0; r < GEM_ROWS - 2; r++) {
+    const t = gemBoard[r][c];
+    if (t === gemBoard[r+1][c] && t === gemBoard[r+2][c]) { matched.add(`${r},${c}`); matched.add(`${r+1},${c}`); matched.add(`${r+2},${c}`); }
+  }
+  return Array.from(matched).map(s => s.split(',').map(Number));
+}
+function processGemMatches() {
+  let matches = findGemMatches(), combo = 0;
+  if (!matches.length) { gemAnimating = false; gemSelected = null; checkGemOver(); return; }
+  while (matches.length) {
+    combo++;
+    const pts = matches.length * 10 * combo;
+    gemScore += pts; updateGemUI();
+    if (combo > 1) showGemCombo(combo);
+    const toRem = new Set(matches.map(m => `${m[0]},${m[1]}`));
+    toRem.forEach(key => { const [r, c] = key.split(',').map(Number); const el = getGem(r, c); if (el) el.classList.add('matched'); });
+    setTimeout(() => {
+      toRem.forEach(key => { const [r, c] = key.split(',').map(Number); const el = getGem(r, c); if (el) el.remove(); });
+      dropGems(); fillGems();
+      setTimeout(() => { matches = findGemMatches(); if (matches.length) processGemMatches(); else { gemAnimating = false; gemSelected = null; checkGemOver(); } }, 350);
+    }, 400);
+    return;
+  }
+}
+function dropGems() {
+  for (let c = 0; c < GEM_COLS; c++) {
+    let wp = GEM_ROWS - 1;
+    for (let r = GEM_ROWS - 1; r >= 0; r--) {
+      const el = document.querySelector(`.gem-cell[data-r="${r}"][data-c="${c}"]`);
+      if (el) { if (r !== wp) { gemBoard[wp][c] = gemBoard[r][c]; gemBoard[r][c] = -1; el.dataset.r = wp; } wp--; }
+    }
+  }
+}
+function fillGems() {
+  for (let c = 0; c < GEM_COLS; c++) for (let r = 0; r < GEM_ROWS; r++) if (gemBoard[r][c] === -1) {
+    let t; do { t = Math.floor(Math.random() * GEM_TYPES.length); } while ((r >= 2 && gemBoard[r-1][c] === t && gemBoard[r-2][c] === t) || (c >= 2 && gemBoard[r][c-1] === t && gemBoard[r][c-2] === t));
+    gemBoard[r][c] = t; makeGem(r, c, t, true);
+  }
+}
+function showGemCombo(n) {
+  const el = document.getElementById('gem-combo');
+  const words = ['', '', 'DOUBLE!', 'TRIPLE!', 'QUAD!', 'MEGA!', 'ULTRA!'];
+  el.textContent = words[n] || 'COMBO x' + n;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 800);
+}
+function updateGemUI() {
+  document.getElementById('gem-score').textContent = gemScore;
+  const prog = Math.min(gemScore / gemTarget * 100, 100);
+  document.getElementById('gem-level').style.width = prog + '%';
+}
+function checkGemOver() {
+  if (gemScore >= gemTarget) { gemLevel++; gemTarget += 500; gemMoves = 30; setTimeout(() => alert('🎉 Level ' + gemLevel + '! Target: ' + gemTarget), 300); }
+  else if (gemMoves <= 0) {
+    setTimeout(() => {
+      if (confirm('Game Over! Score: ' + gemScore + '
+Watch ad for +5 moves?')) {
+        showRewardedAd('gem', () => { gemMoves += 5; updateGemUI(); }, '+5 moves');
+      } else if (confirm('Play again?')) initGemGame();
+    }, 300);
+  }
 }
 
-function drawMatch3() {
-ctx.fillStyle='#1a1033';ctx.fillRect(0,0,canvas.width,canvas.height);
-for(let r=0;r<8;r++)for(let c=0;c<6;c++){
-let colors=['#ff007f','#8b5cf6','#fbbf24','#10b981','#3b82f6'];
-ctx.fillStyle=colors[gems[r][c]];
-ctx.beginPath();ctx.arc(c*67+33,r*60+30,25,0,Math.PI*2);ctx.fill();
-}
-}
-
-// NEON RUNNER
+let runnerCtx, runnerW, runnerH, runnerPlayer, runnerObstacles = [], runnerSpeed = 0, runnerScore = 0, runnerRunning = false, runnerAnimId;
 function initRunner() {
-canvas.width = 400; canvas.height = 300; player={x:50,y:220,vy:0,ground:true};
-obstacles=[]; 
+  const cvs = document.getElementById('runner-cvs');
+  runnerCtx = cvs.getContext('2d');
+  runnerW = cvs.width = cvs.offsetWidth;
+  runnerH = cvs.height = cvs.offsetHeight;
+  runnerPlayer = { x: runnerW / 2, y: runnerH - 100, lane: 1, jumping: false, jumpY: 0 };
+  runnerObstacles = []; runnerSpeed = 3; runnerScore = 0;
+}
+function startRunner() {
+  document.getElementById('runner-overlay').style.display = 'none';
+  document.getElementById('runner-controls').style.display = 'flex';
+  runnerRunning = true; runnerLoop();
+}
+function stopRunner() { runnerRunning = false; cancelAnimationFrame(runnerAnimId); }
+function runnerLoop() {
+  if (!runnerRunning) return;
+  const ctx = runnerCtx;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, runnerW, runnerH);
+  ctx.strokeStyle = '#00d2ff22'; ctx.lineWidth = 1;
+  for (let i = 0; i < runnerW; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, runnerH); ctx.stroke(); }
+  for (let i = 0; i < runnerH; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(runnerW, i); ctx.stroke(); }
+  const lanes = [runnerW * 0.25, runnerW * 0.5, runnerW * 0.75];
+  runnerPlayer.x += (lanes[runnerPlayer.lane] - runnerPlayer.x) * 0.15;
+  if (runnerPlayer.jumping) { runnerPlayer.jumpY += 2; if (runnerPlayer.jumpY > 60) runnerPlayer.jumping = false; }
+  else if (runnerPlayer.jumpY > 0) runnerPlayer.jumpY -= 3;
+  ctx.fillStyle = '#00d2ff'; ctx.shadowColor = '#00d2ff'; ctx.shadowBlur = 20;
+  ctx.fillRect(runnerPlayer.x - 20, runnerPlayer.y - runnerPlayer.jumpY - 30, 40, 30);
+  ctx.shadowBlur = 0;
+  if (Math.random() < 0.02) runnerObstacles.push({ x: lanes[Math.floor(Math.random() * 3)], y: -50, w: 40, h: 40, passed: false });
+  runnerObstacles.forEach((obs, i) => {
+    obs.y += runnerSpeed;
+    ctx.fillStyle = '#ff0044'; ctx.shadowColor = '#ff0044'; ctx.shadowBlur = 15;
+    ctx.fillRect(obs.x - obs.w / 2, obs.y, obs.w, obs.h);
+    ctx.shadowBlur = 0;
+    if (!obs.passed && obs.y > runnerPlayer.y - 30) { obs.passed = true; runnerScore += 10; document.getElementById('runner-score').textContent = runnerScore; }
+    if (Math.abs(obs.x - runnerPlayer.x) < 35 && Math.abs(obs.y - (runnerPlayer.y - runnerPlayer.jumpY - 30)) < 40) {
+      runnerRunning = false; cancelAnimationFrame(runnerAnimId);
+      setTimeout(() => {
+        if (confirm('💥 CRASH! Distance: ' + runnerScore + 'm
+Watch ad to continue?')) {
+          showRewardedAd('runner', () => { runnerRunning = true; runnerLoop(); }, 'Continue running');
+        } else if (confirm('Play again?')) { runnerObstacles = []; runnerScore = 0; runnerPlayer.lane = 1; runnerPlayer.jumpY = 0; document.getElementById('runner-score').textContent = 0; startRunner(); } else { document.getElementById('runner-overlay').style.display = 'flex'; document.getElementById('runner-controls').style.display = 'none'; }
+      }, 300);
+    }
+  });
+  runnerObstacles = runnerObstacles.filter(o => o.y < runnerH + 50);
+  runnerSpeed += 0.001;
+  runnerAnimId = requestAnimationFrame(runnerLoop);
+}
+function runnerMove(dir) { runnerPlayer.lane = Math.max(0, Math.min(2, runnerPlayer.lane + dir)); }
+function runnerJump() { if (!runnerPlayer.jumping && runnerPlayer.jumpY <= 0) runnerPlayer.jumping = true; }
+
+let mazeCtx, mazeW, mazeH, mazeGrid = [], mazePlayer = {x: 1, y: 1}, mazeExit = {x: 0, y: 0}, mazeCellSize, mazeLevel = 1, mazeRunning = false;
+function initMaze() {
+  const cvs = document.getElementById('maze-cvs');
+  mazeCtx = cvs.getContext('2d');
+  mazeW = cvs.width = cvs.offsetWidth;
+  mazeH = cvs.height = cvs.offsetHeight;
+  mazeLevel = 1; document.getElementById('maze-score').textContent = mazeLevel;
+}
+function generateMaze(size) {
+  const grid = Array(size).fill().map(() => Array(size).fill(1));
+  const stack = [[1, 1]]; grid[1][1] = 0;
+  while (stack.length) {
+    const [cx, cy] = stack[stack.length - 1];
+    const neighbors = [[cx+2, cy], [cx-2, cy], [cx, cy+2], [cx, cy-2]].filter(([nx, ny]) => nx > 0 && nx < size - 1 && ny > 0 && ny < size - 1 && grid[ny][nx] === 1);
+    if (neighbors.length) {
+      const [nx, ny] = neighbors[Math.floor(Math.random() * neighbors.length)];
+      grid[ny][nx] = 0; grid[(ny + cy) / 2][(nx + cx) / 2] = 0;
+      stack.push([nx, ny]);
+    } else stack.pop();
+  }
+  return grid;
+}
+function startMaze() {
+  document.getElementById('maze-overlay').style.display = 'none';
+  document.getElementById('maze-controls').style.display = 'grid';
+  mazeRunning = true;
+  const size = 11 + mazeLevel * 2;
+  mazeGrid = generateMaze(size);
+  mazePlayer = {x: 1, y: 1};
+  mazeExit = {x: size - 2, y: size - 2};
+  mazeCellSize = Math.min(mazeW, mazeH - 120) / size;
+  drawMaze();
+}
+function stopMaze() { mazeRunning = false; }
+function drawMaze() {
+  if (!mazeRunning) return;
+  const ctx = mazeCtx, cs = mazeCellSize, size = mazeGrid.length;
+  ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, mazeW, mazeH);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const px = (mazeW - cs * size) / 2 + x * cs;
+      const py = (mazeH - 120 - cs * size) / 2 + y * cs;
+      if (mazeGrid[y][x] === 1) {
+        ctx.fillStyle = '#1a1a3e'; ctx.fillRect(px, py, cs, cs);
+        ctx.strokeStyle = '#f1c40f33'; ctx.strokeRect(px, py, cs, cs);
+      } else {
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(px, py, cs, cs);
+      }
+    }
+  }
+  const ex = (mazeW - cs * size) / 2 + mazeExit.x * cs;
+  const ey = (mazeH - 120 - cs * size) / 2 + mazeExit.y * cs;
+  ctx.fillStyle = '#00ff00'; ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 20;
+  ctx.fillRect(ex + cs * 0.2, ey + cs * 0.2, cs * 0.6, cs * 0.6);
+  ctx.shadowBlur = 0;
+  const px = (mazeW - cs * size) / 2 + mazePlayer.x * cs;
+  const py = (mazeH - 120 - cs * size) / 2 + mazePlayer.y * cs;
+  ctx.fillStyle = '#f1c40f'; ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 15;
+  ctx.beginPath(); ctx.arc(px + cs / 2, py + cs / 2, cs * 0.35, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+function mazeMove(dx, dy) {
+  if (!mazeRunning) return;
+  const nx = mazePlayer.x + dx, ny = mazePlayer.y + dy;
+  if (mazeGrid[ny] && mazeGrid[ny][nx] === 0) {
+    mazePlayer.x = nx; mazePlayer.y = ny;
+    drawMaze();
+    if (nx === mazeExit.x && ny === mazeExit.y) {
+      mazeRunning = false;
+      setTimeout(() => {
+        if (confirm('🎉 Level ' + mazeLevel + ' Complete!
+Watch ad for bonus points?')) {
+          showRewardedAd('maze', () => { gemScore += 100; }, '+100 bonus points');
+        }
+        mazeLevel++; document.getElementById('maze-score').textContent = mazeLevel;
+        startMaze();
+      }, 300);
+    }
+  }
 }
 
-function jump() {
-if(player.ground){player.vy=-12;player.ground=false;}
-}
-
-function drawRunner() {
-ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,canvas.width,canvas.height);
-ctx.fillStyle='#ff007f';ctx.fillRect(0,250,canvas.width,4);
-ctx.fillStyle='#00ffff';ctx.shadowBlur=15;ctx.shadowColor='#00ffff';
-player.y+=player.vy;player.vy+=0.6;
-if(player.y>=220){player.y=220;player.vy=0;player.ground=true;}
-ctx.fillRect(player.x,player.y,30,30);ctx.shadowBlur=0;
-frame++;if(frame%120===0)obstacles.push({x:400,w:20,h:40});
-obstacles=obstacles.filter(o=>{
-o.x-=4;ctx.fillStyle='#ff007f';ctx.fillRect(o.x,210,o.w,o.h);
-if(o.x<player.x+30&&o.x+o.w>player.x&&210<player.y+30)return false;
-return o.x>-50;
+window.onload = () => { };
+window.addEventListener('resize', () => {
+  if (document.getElementById('gem-game').classList.contains('active')) buildGemBoard();
+  if (document.getElementById('runner-game').classList.contains('active')) { initRunner(); if (runnerRunning) runnerLoop(); }
+  if (document.getElementById('maze-game').classList.contains('active')) { initMaze(); if (mazeRunning) drawMaze(); }
 });
-if(frame%10===0){score++;updateScore();}
-}
-
-function gameLoop() {
-if(gameType==='maze')drawMaze();
-else if(gameType==='match3')drawMatch3();
-else if(gameType==='runner')drawRunner();
-requestAnimationFrame(gameLoop);
-}
 </script>
 </body>
 </html>
